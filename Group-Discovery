@@ -1,0 +1,107 @@
+############## SET WINDOW SIZE ##############
+#############################################
+Function Set-WindowSize {
+Param([int]$x=$host.ui.rawui.windowsize.width,
+      [int]$y=$host.ui.rawui.windowsize.heigth)
+
+    $size=New-Object System.Management.Automation.Host.Size($x,$y)
+    $host.ui.rawui.WindowSize=$size
+
+       
+}
+Set-WindowSize 120 52
+mode con:cols=131 lines=52
+############## SET WINDOW SIZE ##############
+#############################################
+
+
+
+
+
+############# SET COLOR OUTPUT ##############
+#############################################
+function Write-ColorOutput($ForegroundColor)
+{
+    # save the current color
+    $fc = $host.UI.RawUI.ForegroundColor
+
+    # set the new color
+    $host.UI.RawUI.ForegroundColor = $ForegroundColor
+
+    # output
+    if ($args) {
+        Write-Output $args
+    }
+    else {
+        $input | Write-Output
+    }
+
+    # restore the original color
+    $host.UI.RawUI.ForegroundColor = $fc
+}
+############# SET COLOR OUTPUT ##############
+#############################################
+
+
+
+
+
+################## SCRIPT ###################
+#############################################
+Set-ExecutionPolicy Bypass -Force
+Import-Module ActiveDirectory
+Do {
+CLS
+
+Write-Host "===================================================================================================================================
+===================================================================================================================================
+
+                                                Retreiving UUHC AD Groups...
+                                        
+===================================================================================================================================
+===================================================================================================================================
+"
+Start-Sleep -Milliseconds 500
+Get-ADGroup -filter {name -like "UUHC-HCU*"} | select Name | Sort-Object Name | Format-Wide Name -Column 3
+Write-Host "===================================================================================================================================
+===================================================================================================================================
+
+                                                Retreiving UUHP AD Groups...
+                                        
+===================================================================================================================================
+===================================================================================================================================
+"
+Start-Sleep -Seconds 1
+Get-ADGroup -filter {name -like "UUHP*"} | select Name | Sort-Object Name | Format-Wide Name -Column 3
+
+Write-Host "Enter in the Group to see which users are in that group. If an error shows, try searching without 
+the UUHC/UUHP header."
+$ADUCGroups = Read-Host
+
+CLS
+Write-Host "===================================================================================================================================
+Displaying users in *$ADUCGroups* "
+Write-Host "Green = enabled account" -ForegroundColor Green
+Write-Host "Red = disabled account" -ForegroundColor Red
+Write-Host "==================================================================================================================================="
+
+
+
+$CountEnabledUsers = Get-ADGroupMember -Identity $ADUCGroups | Get-ADUser -Property DisplayName, Title, Department, Mail | Where { $_.Enabled -eq $True} | Select Name, DisplayName, Department, Mail, Title | Sort-Object DisplayName  | Format-Table -AutoSize | Write-ColorOutput green
+$TotalEnabledUsers = $CountEnabledUsers.Count
+$4 = 4
+$Subtract4 = $TotalEnabledUsers-$4
+Get-ADGroupMember -Identity $ADUCGroups | Get-ADUser -Property DisplayName, Title, Department, Mail | Where { $_.Enabled -eq $True} | Select Name, DisplayName, Department, Mail, Title | Sort-Object DisplayName  | Format-Table -AutoSize | Write-ColorOutput green
+Write-Host "There are "$Subtract4" users listed"
+
+Get-ADGroupMember -Identity $ADUCGroups | Get-ADUser -Property DisplayName, Title, Department, Mail | Where { $_.Enabled -eq $False} | Select Name, DisplayName, Department, Mail, Title | Sort-Object DisplayName | Format-Table -AutoSize | Write-ColorOutput red
+Read-Host "Press Enter to restart script."
+}
+Until ($ADUCGroups -eq "=-#")
+
+
+
+#foreach ($group in $HCUGroups) {
+#Write-Host $group.Name -BackgroundColor Black -ForegroundColor Green
+#Get-ADGroupMember -Identity $group | Get-ADUser -Property DisplayName, Title, Department | Select Name, DisplayName, Department, Title | Sort-Object Department | Format-Table -AutoSize
+#}
